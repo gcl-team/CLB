@@ -1,4 +1,4 @@
-:- module(compiler, [compile_to_console/1, compile_file/2]).
+:- module(compiler, [compile_to_console/1, compile_file/2, compile_code/1]).
 
 :- use_module(library(dcg/basics)).
 :- use_module(mangler).
@@ -55,7 +55,17 @@ resolve_val(Val, State, Basic) :-
 resolve_val(Val, _, Val). % Assume literal if not in symbol table
 
 % --- THE COMPILER ENTRY POINT ---
-% Option 1: Compile to Console (for debugging)
+
+% Option 1: Compile a raw string of CLB code to Console
+compile_code(Source) :-
+    tokenize(Source, Tokens),
+    ( phrase(program(10, [], _, Lines), Tokens) ->
+        atomic_list_concat(Lines, '\n', Final),
+        format("~w~n", [Final])
+    ;   format("ERROR: Parsing failed.~n")
+    ).
+
+% Option 2: Compile a file to Console
 compile_to_console(Path) :-
     read_file_to_string(Path, Source, []),
     tokenize(Source, Tokens),
@@ -65,7 +75,7 @@ compile_to_console(Path) :-
     ;   format("ERROR: Parsing failed in ~w~n", [Path])
     ).
 
-% Option 2: Compile to File (for the build script)
+% Option 3: Compile to File
 compile_file(InPath, OutPath) :-
     read_file_to_string(InPath, Source, []),
     tokenize(Source, Tokens),

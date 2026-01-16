@@ -22,7 +22,7 @@ CLB allows a developer to write code with C# syntax (long variable names, curly 
 
 3. **Compile Code**:
    ```prolog
-   ?- compile("int score = 100; print(score);").
+   ?- compile_code("int score = 100; print(score);").
    ```
    
    **Output**:
