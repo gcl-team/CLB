@@ -1,4 +1,4 @@
-:- module(compiler, [compile/1, compile_file/1]).
+:- module(compiler, [compile_to_console/1, compile_file/2]).
 
 :- use_module(library(dcg/basics)).
 :- use_module(mangler).
@@ -6,13 +6,13 @@
 
 % --- THE PARSER (DCG) ---
 % program(CurrentLine, SymbolTableIn, SymbolTableOut)
-program(Line, _, _) -->
+program(Line, _, _, _) -->
     { Line > 63999, !, format('FATAL ERROR: Line number ~w exceeds C64 limit of 63999.~n', [Line]), fail }.
-program(_, State, State) --> [].
-program(Line, StateIn, StateOut) -->
+program(_, State, State, []) --> [].
+program(Line, StateIn, StateOut, [Code|Rest]) -->
     statement(Line, StateIn, StateNext, Code),
-    { format('~w~n', [Code]), NextLine is Line + 10 },
-    program(NextLine, StateNext, StateOut).
+    { NextLine is Line + 10 },
+    program(NextLine, StateNext, StateOut, Rest).
 
 % Rule: int Name = Value;
 statement(Line, StateIn, StateOut, FinalCode) -->
@@ -55,10 +55,27 @@ resolve_val(Val, State, Basic) :-
 resolve_val(Val, _, Val). % Assume literal if not in symbol table
 
 % --- THE COMPILER ENTRY POINT ---
-compile(Source) :-
-    tokenize(Source, Tokens),
-    phrase(program(10, [], _), Tokens).
-
-compile_file(Path) :-
+% Option 1: Compile to Console (for debugging)
+compile_to_console(Path) :-
     read_file_to_string(Path, Source, []),
-    compile(Source).
+    tokenize(Source, Tokens),
+    ( phrase(program(10, [], _, Lines), Tokens) ->
+        atomic_list_concat(Lines, '\n', Final),
+        format("--- BASIC OUTPUT ---~n~w~n--------------------~n", [Final])
+    ;   format("ERROR: Parsing failed in ~w~n", [Path])
+    ).
+
+% Option 2: Compile to File (for the build script)
+compile_file(InPath, OutPath) :-
+    read_file_to_string(InPath, Source, []),
+    tokenize(Source, Tokens),
+    ( phrase(program(10, [], _, Lines), Tokens) ->
+        atomic_list_concat(Lines, '\n', Final),
+        setup_call_cleanup(
+            open(OutPath, write, Out),
+            format(Out, "~w~n", [Final]),
+            close(Out)
+        ),
+        format("Success: Compiled ~w to ~w~n", [InPath, OutPath])
+    ;   format("ERROR: Parsing failed in ~w~n", [InPath])
+    ).
