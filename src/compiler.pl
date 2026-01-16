@@ -5,7 +5,7 @@
 :- use_module(lexer).
 
 % --- THE PARSER (DCG) ---
-% program(CurrentLine, SymbolTableIn, SymbolTableOut)
+% program(CurrentLine, SymbolTableIn, SymbolTableOut, ListOfLines)
 program(Line, _, _, _) -->
     { Line > 63999, !, format('FATAL ERROR: Line number ~w exceeds C64 limit of 63999.~n', [Line]), fail }.
 program(_, State, State, []) --> [].
