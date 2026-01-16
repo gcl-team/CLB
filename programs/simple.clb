@@ -1,0 +1,9 @@
+int border = 53280;
+int background = 53281;
+int black = 0;
+int white = 1;
+
+poke(border, black);
+poke(background, black);
+print("CLB SYSTEM ONLINE");
+print("READY PLAYER ONE");
