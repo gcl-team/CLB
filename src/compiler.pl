@@ -18,8 +18,12 @@ program(Line, StateIn, StateOut, [Code|Rest]) -->
 statement(Line, StateIn, StateOut, FinalCode) -->
     [int], [Name], [=], expression(Expr, StateIn), [;],
     { 
-        % Extract already used short names (first 2 chars)
-        findall(Short, (member(_-Full, StateIn), sub_atom(Full, 0, 2, _, Short)), Used),
+        (member(Name-_, StateIn) -> 
+            format('FATAL ERROR: Variable "~w" is already declared.~n', [Name]), fail 
+        ;   true
+        ),
+        % Extract already used short names (base names without the % type suffix)
+        findall(Short, (member(_-Full, StateIn), atom_concat(Short, '%', Full)), Used),
         mangle(Name, Used, Short),
         atom_concat(Short, '%', BasicVar),
         % Update Symbol Table

@@ -1,9 +1,13 @@
 int border = 53280;
 int background = 53281;
-int black = 0;
-int white = 1;
+int b = 0;
+int w = 1;
+int b_again = 10;
+int b_ = 9;
 
-poke(border, black);
-poke(background, black);
+poke(border, w);
+poke(background, b);
+
+// Print something...
 print("CLB SYSTEM ONLINE");
 print("READY PLAYER ONE");

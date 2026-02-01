@@ -45,7 +45,7 @@ token(Number) -->
     { number_chars(Number, [C|Rest]) }.
 
 % Helper to consume word characters
-word_chars([C|Cs]) --> [C], { char_type(C, alnum) }, !, word_chars(Cs).
+word_chars([C|Cs]) --> [C], { (char_type(C, alnum) ; C = '_') }, !, word_chars(Cs).
 word_chars([]) --> [].
 
 % Helper to consume digits
