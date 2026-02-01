@@ -6,20 +6,31 @@ tokenize(String, Tokens) :-
     phrase(tokens(Tokens), Chars).
 
 % DCG Rules for Tokenizing
+tokens(Ts) --> 
+    white_space, 
+    skip_comment, !, 
+    tokens(Ts).
 tokens([T|Ts]) --> 
     white_space, 
     token(T), !, 
     tokens(Ts).
 tokens([]) --> white_space.
 
+% Handle Comments: //
+% Ignore comments in lexer because we do not need them in the output
+skip_comment --> ['/'], ['/'], consume_rest_of_line, !.
+
 % Handle Strings in quotes: "HELLO"
 token(String) --> 
     ['"'], string_content(Chars), ['"'], 
     { append(['"'|Chars], ['"'], FullChars), atom_chars(String, FullChars) }.
 
-% Handle Symbols: ( ) , ; = + -
+% Handle Symbols: ( ) , ; = + - * / % < > >= <=
+token('/') --> ['/'], !.
+token('>=') --> ['>'], ['='], !.
+token('<=') --> ['<'], ['='], !.
 token(Symbol) --> 
-    [C], { member(C, ['(', ')', ',', ';', '=', '+', '-', '<', '>']), atom_chars(Symbol, [C]) }.
+    [C], { member(C, ['(', ')', ',', ';', '=', '+', '-', '*', '/', '%', '<', '>']), atom_chars(Symbol, [C]) }.
 
 % Handle Alpha-numeric words (keywords and variables)
 token(Word) --> 
@@ -48,3 +59,6 @@ string_content([]) --> [].
 % Consume white space
 white_space --> [C], { char_type(C, space) }, !, white_space.
 white_space --> [].
+
+consume_rest_of_line --> [C], { C \= '\n' }, !, consume_rest_of_line.
+consume_rest_of_line --> [].

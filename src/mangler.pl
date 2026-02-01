@@ -5,8 +5,9 @@ reserved(W) :- member(W, ['TO', 'OR', 'IF', 'ON', 'GO', 'AS', 'ST', 'FN']).
 
 % The "Public" Predicate
 mangle(LongName, Used, Safe) :-
-    string_upper(LongName, Upper),
-    sub_atom(Upper, 0, 2, _, Try),
+    upcase_atom(LongName, Upper),
+    atom_length(Upper, Len),
+    ( Len < 2 -> Try = Upper ; sub_atom(Upper, 0, 2, _, Try) ),
     resolve_collision(Try, Used, Safe).
 
 resolve_collision(Try, Used, Safe) :-

@@ -14,9 +14,9 @@ program(Line, StateIn, StateOut, [Code|Rest]) -->
     { NextLine is Line + 10 },
     program(NextLine, StateNext, StateOut, Rest).
 
-% Rule: int Name = Value;
+% Rule: int Name = Expr;
 statement(Line, StateIn, StateOut, FinalCode) -->
-    [int], [Name], [=], [Value], [;],
+    [int], [Name], [=], expression(Expr, StateIn), [;],
     { 
         % Extract already used short names (first 2 chars)
         findall(Short, (member(_-Full, StateIn), sub_atom(Full, 0, 2, _, Short)), Used),
@@ -24,12 +24,20 @@ statement(Line, StateIn, StateOut, FinalCode) -->
         atom_concat(Short, '%', BasicVar),
         % Update Symbol Table
         append(StateIn, [Name-BasicVar], StateOut),
-        atomic_list_concat([Line, ' ', BasicVar, ' = ', Value], FinalCode)
+        atomic_list_concat([Line, ' ', BasicVar, ' = ', Expr], FinalCode)
+    }.
+
+% Rule: Name = Expr;
+statement(Line, State, State, FinalCode) -->
+    [Name], [=], expression(Expr, State), [;],
+    {
+        resolve_val(Name, State, BasicVar),
+        atomic_list_concat([Line, ' ', BasicVar, ' = ', Expr], FinalCode)
     }.
 
 % Rule: poke(address, value);
 statement(Line, State, State, FinalCode) -->
-    [poke, '(', Addr, ',', Val, ')', ;],
+    [poke], ['('], [Addr], [','], [Val], [')'], [';'],
     {
         resolve_val(Addr, State, AddrBasic),
         resolve_val(Val, State, ValBasic),
@@ -38,7 +46,7 @@ statement(Line, State, State, FinalCode) -->
 
 % Rule: print("string"); or print(variable);
 statement(Line, State, State, FinalCode) -->
-    [print, '(', Content, ')', ;],
+    [print], ['('], [Content], [')'], [';'],
     { 
         resolve_val(Content, State, BasicContent),
         atomic_list_concat([Line, ' PRINT ', BasicContent], FinalCode) 
@@ -46,13 +54,35 @@ statement(Line, State, State, FinalCode) -->
 
 % Rule: clear();
 statement(Line, State, State, FinalCode) -->
-    [clear, '(', ')', ;],
+    [clear], ['('], [')'], [';'],
     { atomic_list_concat([Line, ' PRINT CHR$(147)'], FinalCode) }.
 
 % Helper to resolve a value (either a literal or a variable)
 resolve_val(Val, State, Basic) :-
     member(Val-Basic, State), !.
 resolve_val(Val, _, Val). % Assume literal if not in symbol table
+
+% --- EXPRESSION PARSER ---
+expression(Code, State) -->
+    [A], ['%'], [B], !,
+    {
+        resolve_val(A, State, ABasic),
+        resolve_val(B, State, BBasic),
+        atomic_list_concat([ABasic, '-(INT(', ABasic, '/', BBasic, ')*', BBasic, ')'], Code)
+    }.
+expression(Code, State) -->
+    [A], [Op], [B],
+    {
+        member(Op, ['+', '-', '*', '/']), !,
+        resolve_val(A, State, ABasic),
+        resolve_val(B, State, BBasic),
+        atomic_list_concat([ABasic, Op, BBasic], Code)
+    }.
+expression(Basic, State) -->
+    [Val],
+    { 
+        resolve_val(Val, State, Basic) 
+    }.
 
 % --- THE COMPILER ENTRY POINT ---
 
