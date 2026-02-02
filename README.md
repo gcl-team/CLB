@@ -79,8 +79,8 @@ This project serves as a practical refresher for Compiler Design theory.
 ### Phase 1: The Core (Saturday AM)
 - [x] Implement the Mangler with collision detection;
 - [x] Build the Lexer to handle symbols, spaces, and strings;
-- [x] Create the Assignment rule (e.g., `int x = 5;`).
-- [x] Add logical comparison operators (`==`, `!=`, etc.)
+- [x] Create the Assignment rule (e.g., `int x = 5;`);
+- [x] Add logical comparison operators (`==`, `!=`, etc.).
 
 ### Phase 2: Flow Control (Saturday PM)
 - [ ] Implement if statements (requires calculating forward-jump line numbers);

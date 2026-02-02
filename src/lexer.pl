@@ -35,6 +35,7 @@ token(Symbol) -->
     [C], { member(C, ['(', ')', ',', ';', '=', '+', '-', '*', '/', '%', '<', '>']), atom_chars(Symbol, [C]) }.
 
 % Handle Alpha-numeric words (keywords and variables)
+% Keywords: int, string, bool, true, false, print, poke, clear
 token(Word) --> 
     [C], { char_type(C, alpha) }, 
     word_chars(Rest), 

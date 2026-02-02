@@ -16,7 +16,7 @@ program(Line, StateIn, StateOut, [Code|Rest]) -->
 
 % Rule: int Name = Expr;
 statement(Line, StateIn, StateOut, FinalCode) -->
-    [int], [Name], [=], expression(Expr, StateIn), [;],
+    [Type], { member(Type, [int, bool]) }, [Name], [=], expression(Expr, StateIn), [;],
     { 
         (member(Name-_, StateIn) -> 
             format('FATAL ERROR: Variable "~w" is already declared.~n', [Name]), fail 
@@ -62,6 +62,8 @@ statement(Line, State, State, FinalCode) -->
     { atomic_list_concat([Line, ' PRINT CHR$(147)'], FinalCode) }.
 
 % Helper to resolve a value (either a literal or a variable)
+resolve_val(true, _, '-1') :- !.
+resolve_val(false, _, '0') :- !.
 resolve_val(Val, State, Basic) :-
     member(Val-Basic, State), !.
 resolve_val(Val, _, Val). % Assume literal if not in symbol table

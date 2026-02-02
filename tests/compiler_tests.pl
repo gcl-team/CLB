@@ -19,4 +19,14 @@ test(compile_not_equal) :-
     phrase(compiler:program(10, [], _, [Line]), Tokens),
     Line = '10 Y% = 5<>3'.
 
+test(compile_bool) :-
+    lexer:tokenize('bool active = true;', Tokens),
+    phrase(compiler:program(10, [], _, [Line]), Tokens),
+    Line = '10 AC% = -1'.
+
+test(compile_bool_false) :-
+    lexer:tokenize('bool running = false;', Tokens),
+    phrase(compiler:program(10, [], _, [Line]), Tokens),
+    Line = '10 RU% = 0'.
+
 :- end_tests(compiler).
