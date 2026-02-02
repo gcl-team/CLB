@@ -64,4 +64,14 @@ test(compile_while) :-
         '40 GOTO 20'
     ].
 
+test(compile_if_else) :-
+    lexer:tokenize('if (1 == 1) { print("A"); } else { print("B"); }', Tokens),
+    phrase(compiler:program(10, [], _, Lines), Tokens),
+    Lines = [
+        '10 IF NOT(1=1) GOTO 40',
+        '20 PRINT "A"',
+        '30 GOTO 50',
+        '40 PRINT "B"'
+    ].
+
 :- end_tests(compiler).

@@ -1,6 +1,7 @@
-:- module(compiler, [compile_to_console/1, compile_file/2, compile_code/1]).
+:- module(compiler, [compile_to_console/1, compile_file/2, compile_code/1, compile_to_list/2]).
 
 :- use_module(library(dcg/basics)).
+:- use_module(library(lists)).
 :- use_module(mangler).
 :- use_module(lexer).
 
@@ -43,23 +44,52 @@ statement(Line, NextLine, State, State, FinalCode) -->
         atomic_list_concat([Line, ' ', BasicVar, ' = ', Expr], FinalCode)
     }.
 
-% Rule: if (Condition) { Statements }
-statement(Line, NextLine, StateIn, StateOut, [IfLine|BlockLines]) -->
+% Rule: if (Condition) { Statements } [else { Statements }]
+statement(Line, NextLine, StateIn, StateOut, [IfLine|FinalLines]) -->
     [if], ['('], expression(Cond, StateIn), [')'], ['{'],
-    { BodyStart is Line + 10 },
-    program(BodyStart, StateIn, StateOut, BlockLines),
+    { IfBodyStart is Line + 10 },
+    program(IfBodyStart, StateIn, IfStateOut, IfBlockLines),
     ['}'],
-    {
-        % Find the last line number in the block to know where to jump to
-        ( last(BlockLines, LastLineCode) ->
-            atomic_list_concat([LastNumAtom|_], ' ', LastLineCode),
-            atom_number(LastNumAtom, LastNum),
-            JumpLine is LastNum + 10
-        ;   JumpLine is Line + 10 % Empty block
-        ),
-        NextLine is JumpLine,
-        atomic_list_concat([Line, ' IF NOT(', Cond, ') GOTO ', JumpLine], IfLine)
-    }.
+    ( [else] ->
+        % ELSE PART
+        {
+            ( last(IfBlockLines, LastIfLine) ->
+                atomic_list_concat([LastIfNum|_], ' ', LastIfLine),
+                atom_number(LastIfNum, LastIfNumVal),
+                IfGotoLine is LastIfNumVal + 10
+            ;   IfGotoLine is Line + 10
+            ),
+            ElseBodyStart is IfGotoLine + 10
+        },
+        ['{'],
+        program(ElseBodyStart, IfStateOut, StateOut, ElseBlockLines),
+        ['}'],
+        {
+            ( last(ElseBlockLines, LastElseLine) ->
+                atomic_list_concat([LastElseNum|_], ' ', LastElseLine),
+                atom_number(LastElseNum, LastElseNumVal),
+                NextLine is LastElseNumVal + 10
+            ;   NextLine is ElseBodyStart
+            ),
+            atomic_list_concat([Line, ' IF NOT(', Cond, ') GOTO ', ElseBodyStart], IfLine),
+            atomic_list_concat([IfGotoLine, ' GOTO ', NextLine], IfGotoCode),
+            append(IfBlockLines, [IfGotoCode|ElseBlockLines], BlockLines),
+            FinalLines = BlockLines
+        }
+    ;
+        % NO ELSE PART
+        {
+            StateOut = IfStateOut,
+            ( last(IfBlockLines, LastIfLine) ->
+                atomic_list_concat([LastIfNum|_], ' ', LastIfLine),
+                atom_number(LastIfNum, LastIfNumVal),
+                NextLine is LastIfNumVal + 10
+            ;   NextLine is Line + 10
+            ),
+            atomic_list_concat([Line, ' IF NOT(', Cond, ') GOTO ', NextLine], IfLine),
+            FinalLines = IfBlockLines
+        }
+    ).
 
 % Rule: while (Condition) { Statements }
 statement(Line, NextLine, StateIn, StateOut, [WhileLine|FinalBodyLines]) -->
@@ -159,11 +189,29 @@ expression(Basic, State) -->
 
 % --- THE COMPILER ENTRY POINT ---
 
-% Option 1: Compile a raw string of CLB code to Console
-compile_code(Source) :-
+% Helper to add a final END statement if needed
+append_end(Lines, FinalLines) :-
+    ( last(Lines, LastLineCode) ->
+        atomic_list_concat([LastNumAtom|_], ' ', LastLineCode),
+        atom_number(LastNumAtom, LastNum),
+        EndLineNum is LastNum + 10
+    ;   EndLineNum = 10
+    ),
+    atomic_list_concat([EndLineNum, ' END'], EndLine),
+    append(Lines, [EndLine], FinalLines).
+
+% Internal helper to get final compiled lines
+compile_to_list(Source, FinalLines) :-
     tokenize(Source, Tokens),
     ( phrase(program(10, [], _, Lines), Tokens) ->
-        atomic_list_concat(Lines, '\n', Final),
+        append_end(Lines, FinalLines)
+    ;   fail
+    ).
+
+% Option 1: Compile a raw string of CLB code to Console
+compile_code(Source) :-
+    ( compile_to_list(Source, FinalLines) ->
+        atomic_list_concat(FinalLines, '\n', Final),
         format("~w~n", [Final])
     ;   format("ERROR: Parsing failed.~n")
     ).
@@ -173,7 +221,8 @@ compile_to_console(Path) :-
     read_file_to_string(Path, Source, []),
     tokenize(Source, Tokens),
     ( phrase(program(10, [], _, Lines), Tokens) ->
-        atomic_list_concat(Lines, '\n', Final),
+        append_end(Lines, FinalLines),
+        atomic_list_concat(FinalLines, '\n', Final),
         format("--- BASIC OUTPUT ---~n~w~n--------------------~n", [Final])
     ;   format("ERROR: Parsing failed in ~w~n", [Path])
     ).
@@ -183,7 +232,8 @@ compile_file(InPath, OutPath) :-
     read_file_to_string(InPath, Source, []),
     tokenize(Source, Tokens),
     ( phrase(program(10, [], _, Lines), Tokens) ->
-        atomic_list_concat(Lines, '\n', Final),
+        append_end(Lines, FinalLines),
+        atomic_list_concat(FinalLines, '\n', Final),
         setup_call_cleanup(
             open(OutPath, write, Out),
             format(Out, "~w~n", [Final]),
