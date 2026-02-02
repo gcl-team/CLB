@@ -88,8 +88,8 @@ This project serves as a practical refresher for Compiler Design theory.
 
 ### Phase 3: Hardware Integration (Sunday)
 - [x] Create build script for petcat integration;
-- [ ] Export Prolog output to `.txt`;
-- [x] Use petcat to convert `.txt` to `.PRG`;
+- [x] Export Prolog output to BASIC text (.bas);
+- [x] Use petcat to convert BASIC to binary (.PRG);
 - [ ] The Moment of Truth: Load onto the real C64 and `RUN`.
 
 ---
