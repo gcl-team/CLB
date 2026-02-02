@@ -61,6 +61,27 @@ statement(Line, NextLine, StateIn, StateOut, [IfLine|BlockLines]) -->
         atomic_list_concat([Line, ' IF NOT(', Cond, ') GOTO ', JumpLine], IfLine)
     }.
 
+% Rule: while (Condition) { Statements }
+statement(Line, NextLine, StateIn, StateOut, [WhileLine|FinalBodyLines]) -->
+    [while], ['('], expression(Cond, StateIn), [')'], ['{'],
+    { BodyStart is Line + 10 },
+    program(BodyStart, StateIn, StateOut, BlockLines),
+    ['}'],
+    {
+        % BackJump follows the last line of the block
+        ( last(BlockLines, LastLineCode) ->
+            atomic_list_concat([LastNumAtom|_], ' ', LastLineCode),
+            atom_number(LastNumAtom, LastNum),
+            BackJumpLine is LastNum + 10
+        ;   BackJumpLine is Line + 10 % Empty loop
+        ),
+        ExitLine is BackJumpLine + 10,
+        NextLine is ExitLine,
+        atomic_list_concat([Line, ' IF NOT(', Cond, ') GOTO ', ExitLine], WhileLine),
+        atomic_list_concat([BackJumpLine, ' GOTO ', Line], BackJumpCode),
+        append(BlockLines, [BackJumpCode], FinalBodyLines)
+    }.
+
 % Rule: poke(address, value);
 statement(Line, NextLine, State, State, FinalCode) -->
     [poke], ['('], [Addr], [','], [Val], [')'], [';'],

@@ -54,4 +54,14 @@ test(compile_if_nested_or_sequential) :-
     phrase(compiler:program(10, [], _, Lines), Tokens),
     Lines = ['10 IF NOT(1=1) GOTO 30', '20 PRINT "HI"', '30 X% = 5'].
 
+test(compile_while) :-
+    lexer:tokenize('int x = 0; while (x < 10) { x = x + 1; }', Tokens),
+    phrase(compiler:program(10, [], _, Lines), Tokens),
+    Lines = [
+        '10 X% = 0',
+        '20 IF NOT(X%<10) GOTO 50',
+        '30 X% = X%+1',
+        '40 GOTO 20'
+    ].
+
 :- end_tests(compiler).
