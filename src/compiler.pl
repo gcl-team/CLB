@@ -66,6 +66,18 @@ resolve_val(Val, State, Basic) :-
     member(Val-Basic, State), !.
 resolve_val(Val, _, Val). % Assume literal if not in symbol table
 
+% Mapping from CLB to BASIC operators
+clb_to_basic_op('+', '+').
+clb_to_basic_op('-', '-').
+clb_to_basic_op('*', '*').
+clb_to_basic_op('/', '/').
+clb_to_basic_op('==', '=').
+clb_to_basic_op('!=', '<>').
+clb_to_basic_op('<', '<').
+clb_to_basic_op('>', '>').
+clb_to_basic_op('<=', '<=').
+clb_to_basic_op('>=', '>=').
+
 % --- EXPRESSION PARSER ---
 expression(Code, State) -->
     [A], ['%'], [B], !,
@@ -77,10 +89,10 @@ expression(Code, State) -->
 expression(Code, State) -->
     [A], [Op], [B],
     {
-        member(Op, ['+', '-', '*', '/']), !,
+        clb_to_basic_op(Op, BasicOp), !,
         resolve_val(A, State, ABasic),
         resolve_val(B, State, BBasic),
-        atomic_list_concat([ABasic, Op, BBasic], Code)
+        atomic_list_concat([ABasic, BasicOp, BBasic], Code)
     }.
 expression(Basic, State) -->
     [Val],

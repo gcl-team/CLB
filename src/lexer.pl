@@ -25,8 +25,10 @@ token(String) -->
     ['"'], string_content(Chars), ['"'], 
     { append(['"'|Chars], ['"'], FullChars), atom_chars(String, FullChars) }.
 
-% Handle Symbols: ( ) , ; = + - * / % < > >= <=
+% Handle Symbols: ( ) , ; = + - * / % < > >= <= == !=
 token('/') --> ['/'], !.
+token('==') --> ['='], ['='], !.
+token('!=') --> ['!'], ['='], !.
 token('>=') --> ['>'], ['='], !.
 token('<=') --> ['<'], ['='], !.
 token(Symbol) --> 
