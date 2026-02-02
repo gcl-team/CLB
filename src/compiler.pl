@@ -18,18 +18,20 @@ program(Line, StateIn, StateOut, FinalLines) -->
     program(NextLine, StateNext, StateOut, Rest),
     { append(Lines, Rest, FinalLines) }.
 
-% Rule: int Name = Expr;
+% Rule: Type Name = Expr;
 statement(Line, NextLine, StateIn, StateOut, FinalCode) -->
-    [Type], { member(Type, [int, bool]) }, [Name], ['='], expression(Expr, StateIn), [';'],
+    [Type], { member(Type, [int, bool, string]) }, [Name], ['='], expression(Expr, StateIn), [';'],
     { 
-        NextLine is Line + 10,        (member(Name-_, StateIn) -> 
+        NextLine is Line + 10,
+        (member(Name-_, StateIn) -> 
             format('FATAL ERROR: Variable "~w" is already declared.~n', [Name]), fail 
         ;   true
         ),
-        % Extract already used short names (base names without the % type suffix)
-        findall(Short, (member(_-Full, StateIn), atom_concat(Short, '%', Full)), Used),
-        mangle(Name, Used, Short),
-        atom_concat(Short, '%', BasicVar),
+        % Determine suffix based on type
+        (Type = string -> Suffix = '$' ; Suffix = '%'),
+        % Extract already used full BASIC names
+        findall(Full, member(_-Full, StateIn), Used),
+        mangle(Name, Used, Suffix, BasicVar),
         % Update Symbol Table
         append(StateIn, [Name-BasicVar], StateOut),
         atomic_list_concat([Line, ' ', BasicVar, ' = ', Expr], FinalCode)

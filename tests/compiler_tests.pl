@@ -74,4 +74,9 @@ test(compile_if_else) :-
         '40 PRINT "B"'
     ].
 
+test(compile_string) :-
+    lexer:tokenize('string name = "PLAYER";', Tokens),
+    phrase(compiler:program(10, [], _, [Line]), Tokens),
+    Line = '10 NA$ = "PLAYER"'.
+
 :- end_tests(compiler).
