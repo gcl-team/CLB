@@ -72,7 +72,8 @@ The project includes a `.github/workflows/test.yml` to validate every commit:
 | **02** | **The Symbol Table** | `mangler.pl`: Type-aware name mangling. | ✅ Done |
 | **03** | **Context-Free Grammars** | `compiler.pl`: DCG-based statement parsing. | ✅ Done |
 | **04** | **Control Flow** | `if`, `else`, and `while` jump logic. | ✅ Done |
-| **05** | **Optimization** | Line-length management & temp variables. | ⏳ To Do |
+| **05** | **Optimization** | Constant folding & dead code removal. | ⏳ To Do |
+| **06** | **Intermediate Rep** | Multi-pass AST for better optimization. | ⏳ To Do |
 
 ## Roadmap
 
@@ -91,10 +92,18 @@ The project includes a `.github/workflows/test.yml` to validate every commit:
 ### Phase 3: Hardware & Polish
 - [x] Robust build script (`simple.bash`) with `petcat` support.
 - [x] Auto-generate `END` statement for all programs.
+- [ ] Implement `input()` statement for player interaction.
 - [ ] Implement `char` type (8-bit bytes).
 - [ ] Add math shortcuts (`++`, `--`, `+=`, etc.).
+- [ ] Implement Arrays (for maps, inventory, etc.).
 - [ ] Implement Functions/Subroutines using `GOSUB`.
 - [ ] Optimization: Auto-split long lines (>80 chars).
+
+### Phase 4: The Optimizer (Multi-Pass)
+- [ ] **Constant Folding**: Pre-calculate `20 + 30` into `50` at compile time.
+- [ ] **Constant Propagation**: Replace variables with known constants in subsequent expressions.
+- [ ] **Dead Code Elimination**: Remove unused variables and unreachable code blocks.
+- [ ] **Tree Shaking**: Prune the generated BASIC code to only included used logic.
 
 ---
 **C64 Development Tips:**
