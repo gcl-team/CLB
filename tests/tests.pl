@@ -3,6 +3,7 @@
 % Load all test modules
 :- use_module(lexer_tests).
 :- use_module(mangler_tests).
+:- use_module(compiler/expression_tests).
 :- use_module(compiler_tests).
 :- use_module(integration_tests).
 
