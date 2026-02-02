@@ -29,4 +29,29 @@ test(compile_bool_false) :-
     phrase(compiler:program(10, [], _, [Line]), Tokens),
     Line = '10 RU% = 0'.
 
+test(compile_logical_and) :-
+    lexer:tokenize('bool res = true && false;', Tokens),
+    phrase(compiler:program(10, [], _, [Line]), Tokens),
+    Line = '10 RE% = -1 AND 0'.
+
+test(compile_logical_or) :-
+    lexer:tokenize('bool res = active || false;', Tokens),
+    phrase(compiler:program(10, [active-'AC%'], _, [Line]), Tokens),
+    Line = '10 RE% = AC% OR 0'.
+
+test(compile_logical_not) :-
+    lexer:tokenize('bool res = !active;', Tokens),
+    phrase(compiler:program(10, [active-'AC%'], _, [Line]), Tokens),
+    Line = '10 RE% = NOT(AC%)'.
+
+test(compile_if) :-
+    lexer:tokenize('if (1 == 1) { print("HI"); }', Tokens),
+    phrase(compiler:program(10, [], _, Lines), Tokens),
+    Lines = ['10 IF NOT(1=1) GOTO 30', '20 PRINT "HI"'].
+
+test(compile_if_nested_or_sequential) :-
+    lexer:tokenize('if (1 == 1) { print("HI"); } int x = 5;', Tokens),
+    phrase(compiler:program(10, [], _, Lines), Tokens),
+    Lines = ['10 IF NOT(1=1) GOTO 30', '20 PRINT "HI"', '30 X% = 5'].
+
 :- end_tests(compiler).

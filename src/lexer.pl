@@ -25,14 +25,17 @@ token(String) -->
     ['"'], string_content(Chars), ['"'], 
     { append(['"'|Chars], ['"'], FullChars), atom_chars(String, FullChars) }.
 
-% Handle Symbols: ( ) , ; = + - * / % < > >= <= == !=
+% Handle Symbols: ( ) , ; = + - * / % < > >= <= == != && || !
 token('/') --> ['/'], !.
+token('&&') --> ['&'], ['&'], !.
+token('||') --> ['|'], ['|'], !.
 token('==') --> ['='], ['='], !.
 token('!=') --> ['!'], ['='], !.
 token('>=') --> ['>'], ['='], !.
 token('<=') --> ['<'], ['='], !.
+token('!') --> ['!'], !.
 token(Symbol) --> 
-    [C], { member(C, ['(', ')', ',', ';', '=', '+', '-', '*', '/', '%', '<', '>']), atom_chars(Symbol, [C]) }.
+    [C], { member(C, ['(', ')', '{', '}', ',', ';', '=', '+', '-', '*', '/', '%', '<', '>']), atom_chars(Symbol, [C]) }.
 
 % Handle Alpha-numeric words (keywords and variables)
 % Keywords: int, string, bool, true, false, print, poke, clear

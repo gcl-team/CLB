@@ -9,16 +9,19 @@
 program(Line, _, _, _) -->
     { Line > 63999, !, format('FATAL ERROR: Line number ~w exceeds C64 limit of 63999.~n', [Line]), fail }.
 program(_, State, State, []) --> [].
-program(Line, StateIn, StateOut, [Code|Rest]) -->
-    statement(Line, StateIn, StateNext, Code),
-    { NextLine is Line + 10 },
-    program(NextLine, StateNext, StateOut, Rest).
+program(Line, StateIn, StateOut, FinalLines) -->
+    statement(Line, NextLine, StateIn, StateNext, Code),
+    { 
+        (is_list(Code) -> Lines = Code ; Lines = [Code])
+    },
+    program(NextLine, StateNext, StateOut, Rest),
+    { append(Lines, Rest, FinalLines) }.
 
 % Rule: int Name = Expr;
-statement(Line, StateIn, StateOut, FinalCode) -->
-    [Type], { member(Type, [int, bool]) }, [Name], [=], expression(Expr, StateIn), [;],
+statement(Line, NextLine, StateIn, StateOut, FinalCode) -->
+    [Type], { member(Type, [int, bool]) }, [Name], ['='], expression(Expr, StateIn), [';'],
     { 
-        (member(Name-_, StateIn) -> 
+        NextLine is Line + 10,        (member(Name-_, StateIn) -> 
             format('FATAL ERROR: Variable "~w" is already declared.~n', [Name]), fail 
         ;   true
         ),
@@ -32,34 +35,58 @@ statement(Line, StateIn, StateOut, FinalCode) -->
     }.
 
 % Rule: Name = Expr;
-statement(Line, State, State, FinalCode) -->
-    [Name], [=], expression(Expr, State), [;],
+statement(Line, NextLine, State, State, FinalCode) -->
+    [Name], ['='], expression(Expr, State), [;],
     {
+        NextLine is Line + 10,
         resolve_val(Name, State, BasicVar),
         atomic_list_concat([Line, ' ', BasicVar, ' = ', Expr], FinalCode)
     }.
 
+% Rule: if (Condition) { Statements }
+statement(Line, NextLine, StateIn, StateOut, [IfLine|BlockLines]) -->
+    [if], ['('], expression(Cond, StateIn), [')'], ['{'],
+    { BodyStart is Line + 10 },
+    program(BodyStart, StateIn, StateOut, BlockLines),
+    ['}'],
+    {
+        % Find the last line number in the block to know where to jump to
+        ( last(BlockLines, LastLineCode) ->
+            atomic_list_concat([LastNumAtom|_], ' ', LastLineCode),
+            atom_number(LastNumAtom, LastNum),
+            JumpLine is LastNum + 10
+        ;   JumpLine is Line + 10 % Empty block
+        ),
+        NextLine is JumpLine,
+        atomic_list_concat([Line, ' IF NOT(', Cond, ') GOTO ', JumpLine], IfLine)
+    }.
+
 % Rule: poke(address, value);
-statement(Line, State, State, FinalCode) -->
+statement(Line, NextLine, State, State, FinalCode) -->
     [poke], ['('], [Addr], [','], [Val], [')'], [';'],
     {
+        NextLine is Line + 10,
         resolve_val(Addr, State, AddrBasic),
         resolve_val(Val, State, ValBasic),
         atomic_list_concat([Line, ' POKE ', AddrBasic, ',', ValBasic], FinalCode)
     }.
 
 % Rule: print("string"); or print(variable);
-statement(Line, State, State, FinalCode) -->
+statement(Line, NextLine, State, State, FinalCode) -->
     [print], ['('], [Content], [')'], [';'],
     { 
+        NextLine is Line + 10,
         resolve_val(Content, State, BasicContent),
         atomic_list_concat([Line, ' PRINT ', BasicContent], FinalCode) 
     }.
 
 % Rule: clear();
-statement(Line, State, State, FinalCode) -->
+statement(Line, NextLine, State, State, FinalCode) -->
     [clear], ['('], [')'], [';'],
-    { atomic_list_concat([Line, ' PRINT CHR$(147)'], FinalCode) }.
+    { 
+        NextLine is Line + 10,
+        atomic_list_concat([Line, ' PRINT CHR$(147)'], FinalCode) 
+    }.
 
 % Helper to resolve a value (either a literal or a variable)
 resolve_val(true, _, '-1') :- !.
@@ -79,8 +106,15 @@ clb_to_basic_op('<', '<').
 clb_to_basic_op('>', '>').
 clb_to_basic_op('<=', '<=').
 clb_to_basic_op('>=', '>=').
+clb_to_basic_op('&&', ' AND ').
+clb_to_basic_op('||', ' OR ').
 
 % --- EXPRESSION PARSER ---
+expression(Code, State) -->
+    ['!'], expression(Sub, State), !,
+    {
+        atomic_list_concat(['NOT(', Sub, ')'], Code)
+    }.
 expression(Code, State) -->
     [A], ['%'], [B], !,
     {
