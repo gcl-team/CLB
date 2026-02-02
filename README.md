@@ -6,7 +6,7 @@
 
 CLB is a tool that translates C-like code into BASIC V2 code suitable for execution on the Commodore 64. It leverages Prolog's powerful parsing and pattern-matching capabilities to facilitate the conversion process.
 
-CLB allows a developer to write code with C# syntax (long variable names, curly brackets, explicit types) and compiles it into Commodore BASIC V2. It handles the "spaghetti logic" of line numbers and GOTO statements automatically.
+CLB allows a developer to write code with C-style syntax (long variable names, curly brackets, explicit types) and compiles it into Commodore BASIC V2. It handles the "spaghetti logic" of line numbers and GOTO statements automatically.
 
 ## Quickstart
 
@@ -25,32 +25,34 @@ CLB allows a developer to write code with C# syntax (long variable names, curly 
 
 | Feature | CLB Syntax | BASIC V2 Equivalent |
 |---------|-------------|---------------------|
-| Integers | `int x = 10;` | `10 x% = 10` |
-| Strings | `string s = "Hello";` | `20 s$ = "Hello"` |
-| Comparisons | `x == y`, `a != b`, `i < 10` | `x = y`, `a <> b`, `i < 10` |
-| Print Statement | `print(x);` | `30 PRINT x` |
-| If Statement | `if (x > 5) { ... }` | `40 IF x > 5 THEN ...` |
-| While Loop | `while (x < 10) { ... }` | `50 IF X >= 10 GOTO [END]` |
-| Hardware Access | `poke(address, value);` | `60 POKE address, value` |
-| Clear Screen | `clear();` | `70 PRINT CHR$(147)` |
+| Integers | `int x = 10;` | `10 X% = 10` |
+| Booleans | `bool active = true;` | `20 AC% = -1` (0 for false) |
+| Strings | `string s = "Hello";` | `30 S$ = "Hello"` |
+| Comparisons | `==`, `!=`, `<`, `>`, `<=`, `>=` | `=`, `<>`, `<`, `>`, `<=`, `>=` |
+| Logical | `&&`, `||`, `!` | `AND`, `OR`, `NOT` |
+| If/Else | `if (cond) { ... } else { ... }` | `IF NOT(cond) GOTO [ELSE/END]` |
+| While Loop | `while (cond) { ... }` | `IF NOT(cond) GOTO [EXIT] ... GOTO [START]` |
+| Hardware Access| `poke(address, value);` | `POKE address, value` |
+| Clear Screen | `clear();` | `PRINT CHR$(147)` |
 
 ### The Mangler Rules
 
-To bypass the C64's 2-character variable limit:
+To bypass the C64's 2-character variable limit while keeping C-style naming:
 
-1. Every variable is truncated to the first two letters;
-2. If `playerScore` (PL) and `playerSpeed` (PL) collide, the second letter increments (PL -> PM);
-3. The Mangler automatically avoids BASIC Reserved Words (e.g., it won't let a variable be named `TO` or `OR`).
+1. **Variables must have unique names**: The compiler blocks re-declaring the same name (e.g., you cannot have an `int player` and a `string player`).
+2. **Prefix Coexistence**: Different variables like `playerScore` and `playerName` can coexist as `PL%` and `PL$` because BASIC V2 treats `%` and `$` as separate memory locations.
+3. **Collision Resolution**: If two different variables of the **same type** share a prefix (e.g., `playerScore` and `playerSpeed` both want `PL%`), the second one increments to a new name (e.g., `PM%`).
+4. **Reserved Word Avoidance**: The Mangler automatically avoids mapping to BASIC words like `TO`, `OR`, or `IF`.
 
 ## Technical Architecture
 
-- **Tokeniser**: Uses Prolog to split source text into atoms. Now supports multi-char symbols like `==`, `!=`, `>=`, `<=`.
-- **Parser (DCG)**: Validates C-style syntax and builds an Abstract Syntax Tree (AST).
-- **Symbol Table**: A recursive list in Prolog that tracks LongName -> ShortName mappings.
-- **Generator**: Flattens blocks into line-numbered code (increments of 10).
+- **Tokeniser**: Uses Prolog DCGs to split source text into atoms. Supports multi-character symbols and quoted strings.
+- **Parser (DCG)**: A recursive-descent parser that builds the logic flow. Now handles **Blocks** and **Jumps** for control flow.
+- **Symbol Table**: Tracks `LongName -> BASIC_Name` mappings and ensures no variable redefinition (C-style scoping).
+- **Generator**: Generates line-numbered BASIC V2 code, automatically appending an `END` statement to all programs for safety.
 
 ## Testing & CI/CD
-We use SWI-Prolog `plunit` and a **Golden Master** approach for integration testing.
+We use SWI-Prolog `plunit` for unit testing and a **Golden Master** approach for integration testing.
 
 ### Running Tests Locally
 ```bash
@@ -64,35 +66,37 @@ The project includes a `.github/workflows/test.yml` to validate every commit:
 
 ## Compiler Learning Journey
 
-This project serves as a practical refresher for Compiler Design theory.
-
 | Lecture | Academic Topic | CLB Implementation | Status |
 | :--- | :--- | :--- | :--- |
 | **01** | **Lexical Analysis** | `lexer.pl`: Turning strings into atoms. | ✅ Done |
-| **02** | **The Symbol Table** | `mangler.pl`: Solving the C64 2-char limit. | ✅ Done |
-| **03** | **Context-Free Grammars** | `compiler.pl`: Using Prolog DCGs. | 🚧 In Progress |
-| **04** | **Code Generation** | Flattening AST into BASIC line numbers. | 🚧 In Progress |
-| **05** | **Control Flow** | Implementing `if` and `while` with `GOTO`. | ⏳ To Do |
+| **02** | **The Symbol Table** | `mangler.pl`: Type-aware name mangling. | ✅ Done |
+| **03** | **Context-Free Grammars** | `compiler.pl`: DCG-based statement parsing. | ✅ Done |
+| **04** | **Control Flow** | `if`, `else`, and `while` jump logic. | ✅ Done |
+| **05** | **Optimization** | Line-length management & temp variables. | ⏳ To Do |
 
 ## Roadmap
 
-### Phase 1: The Core (Saturday AM)
-- [x] Implement the Mangler with collision detection;
-- [x] Build the Lexer to handle symbols, spaces, and strings;
-- [x] Create the Assignment rule (e.g., `int x = 5;`);
-- [x] Add logical comparison operators (`==`, `!=`, etc.).
+### Phase 1: The Core (Completed)
+- [x] Implement the Mangler with collision detection and type suffixes.
+- [x] Build the Lexer for symbols, strings, and operators.
+- [x] Support `int`, `bool`, and `string` types.
+- [x] Implement logical and comparison operators.
 
-### Phase 2: Flow Control (Saturday PM)
-- [ ] Implement if statements (requires calculating forward-jump line numbers);
-- [ ] Implement while loops (requires back-jumping).
+### Phase 2: Flow Control (In Progress)
+- [x] Implement `if` and `else` statements with forward jumps.
+- [x] Implement `while` loops with back-jumping.
+- [ ] Implement `for` loops (C-style).
+- [ ] Implement `else if` support.
 
-### Phase 3: Hardware Integration (Sunday)
-- [x] Create build script for petcat integration;
-- [x] Export Prolog output to BASIC text (.bas);
-- [x] Use petcat to convert BASIC to binary (.PRG);
-- [ ] The Moment of Truth: Load onto the real C64 and `RUN`.
+### Phase 3: Hardware & Polish
+- [x] Robust build script (`simple.bash`) with `petcat` support.
+- [x] Auto-generate `END` statement for all programs.
+- [ ] Implement `char` type (8-bit bytes).
+- [ ] Add math shortcuts (`++`, `--`, `+=`, etc.).
+- [ ] Implement Functions/Subroutines using `GOSUB`.
+- [ ] Optimization: Auto-split long lines (>80 chars).
 
 ---
 **C64 Development Tips:**
-- **Integer Suffix**: Always map `int` to `%` in BASIC. It saves memory and is significantly faster on the 6510 CPU.
-- **Screen Width**: Keep generated lines short; the C64 screen editor struggles with lines over 80 characters.
+- **Integer Suffix (%):** Always use `int` for numbers. In BASIC V2, `%` saves memory and is significantly faster on the 6510 CPU.
+- **Screen Width:** Keep generated lines short; the C64 screen editor struggles with lines over 80 characters. Our compiler aims to keep lines discrete.
