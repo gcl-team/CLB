@@ -92,10 +92,13 @@ The project includes a `.github/workflows/test.yml` to validate every commit:
 ### Phase 3: Hardware & Polish
 - [x] Robust build script (`simple.bash`) with `petcat` support.
 - [x] Auto-generate `END` statement for all programs.
-- [ ] Implement `input()` statement for player interaction.
+- [ ] Implement `input()` statement for user interaction.
+- [ ] Implement String functions (`left()`, `right()`, `mid()`, `len()`).
+- [ ] Implement `DATA` and `READ` for large static text block storage.
+- [ ] Implement Arrays (for maps, inventory, etc.).
+- [ ] Implement `random()` function wrapper for `RND(1)`.
 - [ ] Implement `char` type (8-bit bytes).
 - [ ] Add math shortcuts (`++`, `--`, `+=`, etc.).
-- [ ] Implement Arrays (for maps, inventory, etc.).
 - [ ] Implement Functions/Subroutines using `GOSUB`.
 - [ ] Optimization: Auto-split long lines (>80 chars).
 
