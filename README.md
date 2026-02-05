@@ -85,9 +85,9 @@ The project includes a `.github/workflows/test.yml` to validate every commit:
 
 ### Phase 2: Flow Control (In Progress)
 - [x] Implement `if` and `else` statements with forward jumps.
+- [x] Implement `elif` support.
 - [x] Implement `while` loops with back-jumping.
 - [ ] Implement `for` loops (C-style).
-- [ ] Implement `else if` support.
 
 ### Phase 3: Hardware & Polish
 - [x] Robust build script (`simple.bash`) with `petcat` support.

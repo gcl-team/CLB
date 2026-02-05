@@ -74,6 +74,35 @@ test(compile_if_else) :-
         '40 PRINT "B"'
     ].
 
+test(compile_elif) :-
+    lexer:tokenize('if (x > 0) { print("+"); } elif (x < 0) { print("-"); } else { print("0"); }', Tokens),
+    phrase(compiler:program(10, [x-'X%'], _, Lines), Tokens),
+    ( Lines = [
+        '10 IF NOT(X%>0) GOTO 40',
+        '20 PRINT "+"',
+        '30 GOTO 80',
+        '40 IF NOT(X%<0) GOTO 70',
+        '50 PRINT "-"',
+        '60 GOTO 80',
+        '70 PRINT "0"'
+      ]
+    -> true
+    ;   format('FAILED compile_elif.~nExpected:~n~w~nGot:~n~w~n', 
+               [[ '10 IF NOT(X%>0) GOTO 40', '20 PRINT "+"', '30 GOTO 80', '40 IF NOT(X%<0) GOTO 70', '50 PRINT "-"', '60 GOTO 80', '70 PRINT "0"'], Lines]),
+        fail
+    ).
+
+test(compile_elif_no_else) :-
+    lexer:tokenize('if (x) { print("Y"); } elif (y) { print("Z"); }', Tokens),
+    phrase(compiler:program(10, [x-'X%', y-'Y%'], _, Lines), Tokens),
+    Lines = [
+        '10 IF NOT(X%) GOTO 40',
+        '20 PRINT "Y"',
+        '30 GOTO 60',
+        '40 IF NOT(Y%) GOTO 60',
+        '50 PRINT "Z"'
+    ].
+
 test(compile_string) :-
     lexer:tokenize('string name = "PLAYER";', Tokens),
     phrase(compiler:program(10, [], _, [Line]), Tokens),

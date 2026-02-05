@@ -37,52 +37,31 @@ statement(Line, NextLine, StateIn, StateOut, FinalCode) -->
         atomic_list_concat([Line, ' ', BasicVar, ' = ', Expr], FinalCode)
     }.
 
-% Rule: if (Condition) { Statements } [else { Statements }]
+% Rule: if (Condition) { Statements } [elif (Condition) { Statements }]* [else { Statements }]
 statement(Line, NextLine, StateIn, StateOut, [IfLine|FinalLines]) -->
     [if], !, ['('], expression(Cond, StateIn), [')'], ['{'],
-    { IfBodyStart is Line + 10 },
-    program(IfBodyStart, StateIn, IfStateOut, IfBlockLines),
+    { BodyStart is Line + 10 },
+    program(BodyStart, StateIn, IfStateOut, IfBlockLines),
     ['}'],
-    ( [else] ->
-        % ELSE PART
-        {
-            ( last(IfBlockLines, LastIfLine) ->
-                atomic_list_concat([LastIfNum|_], ' ', LastIfLine),
-                atom_number(LastIfNum, LastIfNumVal),
-                IfGotoLine is LastIfNumVal + 10
-            ;   IfGotoLine is Line + 10
-            ),
-            ElseBodyStart is IfGotoLine + 10
-        },
-        ['{'],
-        program(ElseBodyStart, IfStateOut, StateOut, ElseBlockLines),
-        ['}'],
-        {
-            ( last(ElseBlockLines, LastElseLine) ->
-                atomic_list_concat([LastElseNum|_], ' ', LastElseLine),
-                atom_number(LastElseNum, LastElseNumVal),
-                NextLine is LastElseNumVal + 10
-            ;   NextLine is ElseBodyStart
-            ),
-            atomic_list_concat([Line, ' IF NOT(', Cond, ') GOTO ', ElseBodyStart], IfLine),
-            atomic_list_concat([IfGotoLine, ' GOTO ', NextLine], IfGotoCode),
-            append(IfBlockLines, [IfGotoCode|ElseBlockLines], BlockLines),
-            FinalLines = BlockLines
-        }
-    ;
-        % NO ELSE PART
-        {
-            StateOut = IfStateOut,
-            ( last(IfBlockLines, LastIfLine) ->
-                atomic_list_concat([LastIfNum|_], ' ', LastIfLine),
-                atom_number(LastIfNum, LastIfNumVal),
-                NextLine is LastIfNumVal + 10
-            ;   NextLine is Line + 10
-            ),
-            atomic_list_concat([Line, ' IF NOT(', Cond, ') GOTO ', NextLine], IfLine),
+    {
+        last_line_num(IfBlockLines, Line, LastIfLine),
+        JumpToEndLine is LastIfLine + 10,
+        NextBranchLine is JumpToEndLine + 10
+    },
+    if_tail(NextBranchLine, TailNextLine, IfStateOut, StateOut, TailLines, NextBranchTarget),
+    {
+        ( TailLines = [] ->
+            NextLine = JumpToEndLine,
+            ActualTarget = NextLine,
             FinalLines = IfBlockLines
-        }
-    ).
+        ;
+            NextLine = TailNextLine,
+            ActualTarget = NextBranchTarget,
+            atomic_list_concat([JumpToEndLine, ' GOTO ', NextLine], JumpToEndCode),
+            append(IfBlockLines, [JumpToEndCode|TailLines], FinalLines)
+        ),
+        atomic_list_concat([Line, ' IF NOT(', Cond, ') GOTO ', ActualTarget], IfLine)
+    }.
 
 % Rule: while (Condition) { Statements }
 statement(Line, NextLine, StateIn, StateOut, [WhileLine|FinalBodyLines]) -->
@@ -140,3 +119,50 @@ statement(Line, NextLine, State, State, FinalCode) -->
         resolve_val(Name, State, BasicVar),
         atomic_list_concat([Line, ' ', BasicVar, ' = ', Expr], FinalCode)
     }.
+
+% --- HELPERS ---
+
+% if_tail(CurrentLine, NextLine, StateIn, StateOut, GeneratedLines, TargetForPreviousJump)
+if_tail(Line, NextLine, StateIn, StateOut, [ElifLine|FinalLines], Line) -->
+    [elif], !, ['('], expression(Cond, StateIn), [')'], ['{'],
+    { BodyStart is Line + 10 },
+    program(BodyStart, StateIn, IfStateOut, IfBlockLines),
+    ['}'],
+    {
+        last_line_num(IfBlockLines, Line, LastIfLine),
+        JumpToEndLine is LastIfLine + 10,
+        NextBranchLine is JumpToEndLine + 10
+    },
+    if_tail(NextBranchLine, TailNextLine, IfStateOut, StateOut, TailLines, NextBranchTarget),
+    {
+        ( TailLines = [] ->
+            NextLine = JumpToEndLine,
+            ActualTarget = NextLine,
+            FinalLines = IfBlockLines
+        ;
+            NextLine = TailNextLine,
+            ActualTarget = NextBranchTarget,
+            atomic_list_concat([JumpToEndLine, ' GOTO ', NextLine], JumpToEndCode),
+            append(IfBlockLines, [JumpToEndCode|TailLines], FinalLines)
+        ),
+        atomic_list_concat([Line, ' IF NOT(', Cond, ') GOTO ', ActualTarget], ElifLine)
+    }.
+
+if_tail(Line, NextLine, StateIn, StateOut, BodyLines, Line) -->
+    [else], !, ['{'],
+    program(Line, StateIn, StateOut, BodyLines),
+    ['}'],
+    {
+        last_line_num(BodyLines, Line, LastBodyLine),
+        NextLine is LastBodyLine + 10
+    }.
+
+if_tail(Line, Line, State, State, [], Line) --> [].
+
+% Helper to extract the last line number from a list of BASIC lines
+last_line_num(Lines, Default, LastNum) :-
+    ( last(Lines, LastLine) ->
+        atomic_list_concat([NumAtom|_], ' ', LastLine),
+        ( atom_number(NumAtom, LastNum) -> true ; LastNum = Default )
+    ;   LastNum = Default
+    ).
