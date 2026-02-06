@@ -10,4 +10,14 @@ poke(background, b);
 
 // Print something...
 print("CLB SYSTEM ONLINE");
-print("READY PLAYER ONE");
+
+while (b_ > 0) {
+    print("COUNTDOWN");
+    b_ = b_ - 1;
+}
+
+for (int i in range(0, 3)) {
+    print("LOOP");
+}
+
+print("DONE");

@@ -84,6 +84,41 @@ statement(Line, NextLine, StateIn, StateOut, [WhileLine|FinalBodyLines]) -->
         append(BlockLines, [BackJumpCode], FinalBodyLines)
     }.
 
+% Rule: for(int i in range(start, stop, step)) { Statements }
+statement(Line, NextLine, StateIn, StateOut, [ForLine|FinalBodyLines]) -->
+    [for], !, ['('], [int], [Name], [in], [range], ['('], 
+    expression(Start, StateIn), [','], expression(Stop, StateIn),
+    (   [','], expression(Step, StateIn) 
+    ;   { Step = '1' } 
+    ),
+    [')'], [')'], ['{'],
+    {
+        % Mangle the loop variable
+        findall(Full, member(_-Full, StateIn), Used),
+        mangle(Name, Used, '%', BasicVar),
+        % Update Symbol Table for the loop body
+        append(StateIn, [Name-BasicVar], BodyStateIn),
+        
+        % We want "exclusive" stop like Python/C, so we convert "TO Stop" to "TO Stop - 1"
+        % Note: In BASIC V2, "FOR I = 0 TO 10-1 STEP 1" is valid.
+        atomic_list_concat([Start, ' TO (', Stop, ') - 1 STEP ', Step], ForParts),
+        atomic_list_concat([Line, ' FOR ', BasicVar, ' = ', ForParts], ForLine),
+        
+        BodyStartLine is Line + 10
+    },
+    program(BodyStartLine, BodyStateIn, _, BodyLines),
+    ['}'],
+    {
+        last_line_num(BodyLines, Line, LastBodyLine),
+        NextCodeLine is LastBodyLine + 10,
+        atomic_list_concat([NextCodeLine, ' NEXT ', BasicVar], NextLineCode),
+        append(BodyLines, [NextLineCode], FinalBodyLines),
+        NextLine is NextCodeLine + 10,
+        % However, loop variables in BASIC are global. We keep the mangled name in StateOut
+        % but technically the user shouldn't re-declare it.
+        (member(Name-_, StateIn) -> StateOut = StateIn ; append(StateIn, [Name-BasicVar], StateOut))
+    }.
+
 % Rule: poke(address, value);
 statement(Line, NextLine, State, State, FinalCode) -->
     [poke], !, ['('], [Addr], [','], [Val], [')'], [';'],

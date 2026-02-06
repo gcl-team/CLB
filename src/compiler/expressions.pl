@@ -23,6 +23,12 @@ expression(Code, State) -->
         resolve_val(B, State, BBasic),
         atomic_list_concat([ABasic, BasicOp, BBasic], Code)
     }.
+expression(Code, State) -->
+    ['-'], [Val], { number(Val) }, !,
+    {
+        NegVal is -Val,
+        resolve_val(NegVal, State, Code)
+    }.
 expression(Basic, State) -->
     [Val],
     { 

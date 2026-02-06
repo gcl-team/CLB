@@ -108,4 +108,22 @@ test(compile_string) :-
     phrase(compiler:program(10, [], _, [Line]), Tokens),
     Line = '10 NA$ = "PLAYER"'.
 
+test(compile_for) :-
+    lexer:tokenize('for(int i in range(0, 5)) { print(i); }', Tokens),
+    phrase(compiler:program(10, [], _, Lines), Tokens),
+    Lines = [
+        '10 FOR I% = 0 TO (5) - 1 STEP 1',
+        '20 PRINT I%',
+        '30 NEXT I%'
+    ].
+
+test(compile_for_step) :-
+    lexer:tokenize('for(int i in range(10, 0, -1)) { print(i); }', Tokens),
+    phrase(compiler:program(10, [], _, Lines), Tokens),
+    Lines = [
+        '10 FOR I% = 10 TO (0) - 1 STEP -1',
+        '20 PRINT I%',
+        '30 NEXT I%'
+    ].
+
 :- end_tests(compiler).

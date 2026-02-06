@@ -32,6 +32,7 @@ CLB allows a developer to write code with C-style syntax (long variable names, c
 | Logical | `&&`, `||`, `!` | `AND`, `OR`, `NOT` |
 | If/Else | `if (cond) { ... } else { ... }` | `IF NOT(cond) GOTO [ELSE/END]` |
 | While Loop | `while (cond) { ... }` | `IF NOT(cond) GOTO [EXIT] ... GOTO [START]` |
+| For Loop | `for(int i in range(0, 10)) { ... }` | `FOR I% = 0 TO 9 STEP 1 ... NEXT I%` |
 | Hardware Access| `poke(address, value);` | `POKE address, value` |
 | Clear Screen | `clear();` | `PRINT CHR$(147)` |
 
@@ -87,7 +88,7 @@ The project includes a `.github/workflows/test.yml` to validate every commit:
 - [x] Implement `if` and `else` statements with forward jumps.
 - [x] Implement `elif` support.
 - [x] Implement `while` loops with back-jumping.
-- [ ] Implement `for` loops (C-style).
+- [x] Implement `for` loops.
 
 ### Phase 3: Hardware & Polish
 - [x] Robust build script (`simple.bash`) with `petcat` support.
